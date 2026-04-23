@@ -4,13 +4,13 @@ public class Product {
     private int id;
     private String name;
     private double price;
-    private int availableQuantity;
+    private int stock;
 
-    public Product(int id, String name, double price, int availableQuantity) {
+    public Product(int id, String name, double price, int stock) {
         this.id = id;
         this.name = name;
         this.price = price;
-        this.availableQuantity = availableQuantity;
+        this.stock = stock;
     }
 
     public int getId() {
@@ -25,17 +25,17 @@ public class Product {
         return price;
     }
 
-    public int getAvailableQuantity() {
-        return availableQuantity;
+    public int getStock() {
+        return stock;
     }
 
-    public boolean hasAvailableQuantity() {
-        return availableQuantity > 0;
+    public boolean hasEnoughStock(int quantity) {
+        return stock >= quantity;
     }
 
-    public void decreaseAvailableQuantity() {
-        if (availableQuantity > 0) {
-            availableQuantity = availableQuantity - 1;
-        }
+    public void decreaseStock(int quantity) {
+        stock = stock - quantity;
     }
+
+
 }
