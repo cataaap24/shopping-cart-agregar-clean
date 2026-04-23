@@ -3,11 +3,16 @@ package isi.shoppingCart.adapters.ui;
 import isi.shoppingCart.entities.CartItem;
 import isi.shoppingCart.entities.Product;
 import isi.shoppingCart.infrastructure.repositories.InMemoryCartRepository;
+import isi.shoppingCart.infrastructure.repositories.InMemoryPurchaseRepository;
+import isi.shoppingCart.infrastructure.repositories.InMemoryIdGenerator;
 import isi.shoppingCart.infrastructure.repositories.InMemoryProductRepository;
 import isi.shoppingCart.usecases.ports.CartRepository;
+import isi.shoppingCart.usecases.ports.IdGenerator;
 import isi.shoppingCart.usecases.ports.ProductRepository;
+import isi.shoppingCart.usecases.ports.PurchaseRepository;
 import isi.shoppingCart.usecases.services.AgregarProductoAlCarritoUseCase;
 import isi.shoppingCart.usecases.services.ShoppingCartApp;
+import isi.shoppingCart.usecases.services.ConfirmPurchaseUseCase;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -23,21 +28,24 @@ import java.util.List;
 
 public class MainView {
     private ShoppingCartApp shoppingCartApp;
-
+    private int clientId = 1;  // cliente fijo para simular sin login
     private VBox catalogBox;
     private VBox cartBox;
     private Label totalLabel;
 
     public MainView() {
         ProductRepository productRepository = new InMemoryProductRepository();
+        PurchaseRepository purchaseRepository = new InMemoryPurchaseRepository();
+        IdGenerator idGenerator = new InMemoryIdGenerator();
         CartRepository cartRepository = new InMemoryCartRepository(productRepository);
         AgregarProductoAlCarritoUseCase agregarProductoAlCarritoUseCase =
                 new AgregarProductoAlCarritoUseCase(productRepository, cartRepository);
-
+        ConfirmPurchaseUseCase confirmPurchaseUseCase = new ConfirmPurchaseUseCase(cartRepository, productRepository, purchaseRepository, idGenerator);
         shoppingCartApp = new ShoppingCartApp(
                 productRepository,
                 cartRepository,
-                agregarProductoAlCarritoUseCase
+                agregarProductoAlCarritoUseCase,
+                confirmPurchaseUseCase
         );
 
         catalogBox = new VBox(10);
@@ -62,7 +70,7 @@ public class MainView {
         BorderPane root = new BorderPane();
         root.setCenter(content);
 
-        return new Scene(root, 900, 450);
+        return new Scene(root, 800, 450);
     }
 
     private VBox createCatalogPanel() {
@@ -71,7 +79,7 @@ public class MainView {
 
         VBox panel = new VBox(10);
         panel.getChildren().addAll(title, catalogBox);
-        panel.setPrefWidth(430);
+        panel.setPrefWidth(380);
         panel.setStyle("-fx-border-color: lightgray; -fx-padding: 10;");
         return panel;
     }
@@ -81,11 +89,11 @@ public class MainView {
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Button confirmButton = new Button("Confirmar compra");
-        confirmButton.setOnAction(event -> showMessage("Por implementar"));
+        confirmButton.setOnAction(event -> onConfirmPurchase());
 
         VBox panel = new VBox(10);
         panel.getChildren().addAll(title, cartBox, totalLabel, confirmButton);
-        panel.setPrefWidth(430);
+        panel.setPrefWidth(380);
         panel.setStyle("-fx-border-color: lightgray; -fx-padding: 10;");
         return panel;
     }
@@ -102,17 +110,17 @@ public class MainView {
 
             Label nameLabel = new Label(product.getName());
             Label priceLabel = new Label("$ " + product.getPrice());
-            Label stockLabel = new Label("Disponible: " + product.getAvailableQuantity());
+            Label stockLabel = new Label("Stock: " + product.getStock());
             Button addButton = new Button("Agregar");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
             addButton.setOnAction(event -> {
-                String message = shoppingCartApp.addProductToCart(product.getId());
+                String result = shoppingCartApp.addProductToCart(product.getId());
 
-                if (!message.equals("")) {
-                    showError(message);
+                if (!result.equals("ok")) {
+                    showMessage(result, Alert.AlertType.WARNING);
                 }
 
                 refreshCatalog();
@@ -149,17 +157,24 @@ public class MainView {
         totalLabel.setText("Total: $ " + shoppingCartApp.getCartTotal());
     }
 
-    private void showMessage(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Mensaje");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void onConfirmPurchase() {
+        String result = shoppingCartApp.confirmPurchase(clientId);
+
+        Alert.AlertType type;
+        if (result.startsWith("Compra #")) {
+            type = Alert.AlertType.INFORMATION;
+        } else {
+            type = Alert.AlertType.WARNING;
+        }
+
+        showMessage(result, type);
+        refreshCatalog();
+        refreshCart();
     }
 
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
+    private void showMessage(String message, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle("Shopping Cart");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
