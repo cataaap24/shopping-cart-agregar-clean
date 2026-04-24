@@ -10,8 +10,8 @@ public class InMemoryClientRepository implements ClientRepository {
 
     public InMemoryClientRepository() {
         clients = new ArrayList<Client>();
-        clients.add(new Client(1, "Ana García", "ana@email.com", "1234"));
-        clients.add(new Client(2, "Luis Pérez", "luis@email.com", "abcd"));
+        clients.add(new Client(1, "Paula Perez", "paula@gmail.com", "1234"));
+        clients.add(new Client(2, "Luis Lopez", "luis@gmail.com", "abcd"));
     }
 
     public Client findByEmail(String email) {
